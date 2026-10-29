@@ -41,6 +41,8 @@ Tengo una panadería. Dame 3 ideas para hacer un Reel como este: https://www.ins
 
 O arrastra un vídeo tuyo a la caja donde escribes y pídele que lo vea.
 
+¿Un efecto o una transición muy rápida? Pídele la lupa: «mira del segundo 10 al 12 con lupa». Saca 10 imágenes por segundo de ese trozo.
+
 Claude va contando lo que ve mientras lo mira. Al final te da:
 - el gancho;
 - el vídeo bloque a bloque;

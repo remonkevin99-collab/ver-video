@@ -2,6 +2,7 @@
 
     python ver.py <enlace o archivo>        # un Reel, un TikTok, un vídeo de YouTube o uno tuyo
     python ver.py <enlace> --cada 1         # un cuadro cada segundo (si no, lo decide según lo que dure)
+    python ver.py <vídeo> --desde 10 --hasta 12      # la lupa: ese tramo, 10 cuadros por segundo (--cada 0.04: casi todos)
     python ver.py --comprobar               # dice si todo está instalado
 
 Lo deja en `videos-vistos/<nombre>/`, dentro de la carpeta desde la que lo corres:
@@ -43,7 +44,10 @@ def ffmpeg():
 
 
 def reloj(t, decimas=False):
+    """0:07 · con `decimas`, 0:07.5 · con decimas=2, 0:07.52 (para la lupa)."""
     m, s = divmod(t, 60)
+    if decimas == 2:
+        return f'{int(m)}:{s:05.2f}'
     return f'{int(m)}:{s:04.1f}' if decimas else f'{int(m)}:{int(s):02d}'
 
 
@@ -130,19 +134,20 @@ def medir(video, ff):
 
 # ── 2 · los cuadros ───────────────────────────────────────────────────────────────────────────────────────────────
 
-def sacar_cuadros(video, ff, fps, ancho_mini, hasta=None):
-    """Los cuadros a `fps` por segundo, ya pequeños. Devuelve [(segundo, imagen)]."""
+def sacar_cuadros(video, ff, fps, ancho_mini, dura=None, desde=0):
+    """Los cuadros a `fps` por segundo, ya pequeños, desde el segundo `desde` y durante `dura`. Devuelve
+    [(segundo, imagen)]."""
     from PIL import Image
     with tempfile.TemporaryDirectory() as t:
-        args = [ff, '-v', 'error', '-i', str(video)]
-        if hasta:
-            args += ['-t', str(hasta)]
+        args = [ff, '-v', 'error'] + (['-ss', str(desde)] if desde else []) + ['-i', str(video)]
+        if dura:
+            args += ['-t', str(dura)]
         args += ['-vf', f'fps={fps},scale={ancho_mini}:-2', '-q:v', '3', str(Path(t) / '%05d.jpg')]
         subprocess.run(args, check=True)
         cuadros = []
         for k, f in enumerate(sorted(Path(t).glob('*.jpg'))):
             with Image.open(f) as im:
-                cuadros.append((k / fps, im.convert('RGB')))
+                cuadros.append((desde + k / fps, im.convert('RGB')))
     return cuadros
 
 
@@ -265,6 +270,47 @@ def resumen(carpeta, datos, dura, ancho, alto, frases, palabras, idioma, planos,
     (carpeta / 'RESUMEN.md').write_text('\n'.join(l) + '\n', encoding='utf-8')
 
 
+# ── la lupa: un tramo corto, casi cuadro a cuadro ──────────────────────────────────────────────────────────────
+
+def lupa(video, ff, carpeta, desde, hasta, cada, forma):
+    """Un tramo corto con muchos cuadros (10 por segundo, o los que diga `cada`), para ver una transición o un efecto
+    rápido. Deja `lupa-<desde>-<hasta>-NN.jpg`, dice lo que se habla en ese tramo y lo apunta en RESUMEN.md."""
+    if hasta <= desde:
+        sys.exit('En la lupa, --hasta tiene que ser mayor que --desde.')
+    if hasta - desde > 15:
+        print('Ojo: la lupa es para tramos cortos (unos segundos). Con tantos, salen muchas hojas.', flush=True)
+    cuadros = sacar_cuadros(video, ff, 1 / cada, forma['mini'], dura=hasta - desde, desde=desde)
+    if not cuadros:
+        sys.exit('Ese tramo está fuera del vídeo.')
+    nombre = f'lupa-{desde:g}-{hasta:g}'.replace('.', ',')
+    for viejo in carpeta.glob(f'{nombre}-*.jpg'):
+        viejo.unlink()
+    por_hoja = forma['columnas'] * forma['filas']
+    rutas = []
+    for n, k in enumerate(range(0, len(cuadros), por_hoja), 1):
+        ruta = f'{nombre}-{n:02d}.jpg'
+        hoja(cuadros[k:k + por_hoja], forma['columnas'], carpeta / ruta, 2)
+        rutas.append(ruta)
+    print(f'✓ Lupa de {reloj(desde, True)} a {reloj(hasta, True)}: {len(cuadros)} cuadros, uno cada '
+          f'{str(round(cada, 3)).replace(".", ",")} s, en {len(rutas)} hojas: {", ".join(rutas)}', flush=True)
+    dicho = []
+    voz = carpeta / 'voz.json'
+    if voz.exists():
+        frases = json.loads(voz.read_text(encoding='utf-8')).get('frases', [])
+        dicho = [f"[{reloj(f['ini'], True)}–{reloj(f['fin'], True)}] {f['texto']}" for f in frases
+                 if f['fin'] > desde and f['ini'] < hasta]
+    print('Lo que se dice en ese tramo:\n' + '\n'.join(dicho) if dicho else 'En ese tramo no se dice nada (o no se pasó '
+          'antes el vídeo entero).', flush=True)
+    resumen_md = carpeta / 'RESUMEN.md'
+    if resumen_md.exists():
+        texto = resumen_md.read_text(encoding='utf-8')
+        if '## Con lupa' not in texto:
+            texto += '\n## Con lupa\n\n'
+        texto += f"- {', '.join(f'`{r}`' for r in rutas)}: de {reloj(desde, True)} a {reloj(hasta, True)}, un cuadro cada " \
+                 f"{str(round(cada, 3)).replace('.', ',')} s.\n"
+        resumen_md.write_text(texto, encoding='utf-8')
+
+
 # ── todo junto ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 def comprobar():
@@ -294,6 +340,8 @@ def main():
         sys.exit(0 if comprobar() else 1)
     fuente = args[0]
     cada = float(args[args.index('--cada') + 1]) if '--cada' in args else None
+    desde = float(args[args.index('--desde') + 1]) if '--desde' in args else None
+    hasta = float(args[args.index('--hasta') + 1]) if '--hasta' in args else None
     modelo = args[args.index('--modelo') + 1] if '--modelo' in args else os.environ.get('MODELO_WHISPER', 'small')
     destino = Path(args[args.index('--carpeta') + 1]) if '--carpeta' in args else Path.cwd() / 'videos-vistos'
     destino.mkdir(parents=True, exist_ok=True)
@@ -322,6 +370,10 @@ def main():
     if not dura:
         sys.exit('No pude leer el vídeo (¿está dañado?).')
     print(f'✓ Vídeo: {reloj(dura)}, {"vertical" if alto > ancho else "horizontal"}', flush=True)
+    if desde is not None or hasta is not None:
+        lupa(video, ff, carpeta, desde or 0.0, min(hasta if hasta is not None else dura, dura), cada or 0.1,
+             VERTICAL if alto >= ancho else HORIZONTAL)
+        return
 
     # cuántos cuadros: uno cada medio segundo en un Reel; en uno largo, los justos para no pasar de unas 12 hojas
     if cada is None:
@@ -329,7 +381,7 @@ def main():
     forma = VERTICAL if alto >= ancho else HORIZONTAL
     por_hoja = forma['columnas'] * forma['filas']
 
-    gancho = sacar_cuadros(video, ff, GANCHO_FPS, round(forma['mini'] * 0.85), hasta=GANCHO_SEGUNDOS)
+    gancho = sacar_cuadros(video, ff, GANCHO_FPS, round(forma['mini'] * 0.85), dura=GANCHO_SEGUNDOS)
     if gancho:
         hoja(gancho, 8 if forma is VERTICAL else 6, carpeta / 'gancho.jpg', True)
     for viejo in carpeta.glob('hoja-*.jpg'):

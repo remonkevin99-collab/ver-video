@@ -103,8 +103,14 @@ Es tu opinión de cómo está hecho, no una predicción: no digas cuántas vista
 - **No te inventes lo que no ves ni oyes.** La música y los efectos de sonido no los tienes: no digas qué canción suena. Si
   algo no se distingue en los cuadros, dilo.
 - **La transcripción puede traer alguna palabra mal oída.** Corrígela por el contexto y por lo que se lee en pantalla.
-- **Para un tramo con más detalle** (un efecto rápido, una transición), vuelve a pasar el vídeo ya bajado con más cuadros:
-  `VER "videos-vistos/<nombre>/video.mp4" --cada 0.25`. Se queda en su misma carpeta.
+- **La lupa, para un tramo con más detalle** (un efecto rápido, una transición, «mira del segundo 10 al 12»): pasa el vídeo
+  ya bajado con `--desde` y `--hasta`:
+  `VER "videos-vistos/<nombre>/video.mp4" --desde 10 --hasta 12`.
+  - Saca 10 cuadros por segundo de ese tramo y deja `lupa-10-12-NN.jpg` en la misma carpeta, con lo que se dice ahí.
+  - Con `--cada 0.04` saca casi todos los cuadros.
+  - Úsala también sola cuando la persona pregunte cómo se hizo un efecto o una transición: mira el tramo y cuéntale qué
+    pasa cuadro a cuadro.
+  - Es para tramos cortos, de pocos segundos.
 - **Para comparar dos vídeos**, pasa los dos y compáralos apartado por apartado.
 - **En vídeos largos** (más de 8 minutos), el programa saca menos cuadros por segundo para no pasar de unas 12 hojas. Si
   la persona quiere un tramo concreto, pásalo con `--cada` más pequeño.
