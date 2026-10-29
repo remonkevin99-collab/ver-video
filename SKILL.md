@@ -48,6 +48,16 @@ Aquí lo llamamos `VER …`.
    > Choca con lo que crees: ahí está el gancho.
 
    Así la persona va viendo que lo estás mirando de verdad.
+
+   **Si hizo una pregunta concreta, contesta ESO**, con el segundo y lo que se ve o se dice ahí. Por ejemplo:
+   - «¿de qué va este vídeo?»;
+   - «¿en qué segundo enseña el precio?»;
+   - «resúmeme esta entrevista»;
+   - «¿qué app usa?»;
+   - «¿cómo hizo esa transición?».
+
+   Sirve con cualquier vídeo, no solo con Reels. El análisis completo de abajo, solo si pide analizarlo, entender por qué
+   funcionó o no dice qué quiere. Después, ofrécelo en una línea.
 4. **El análisis**, con estos apartados y en este orden:
    - **En una frase:** de qué va y por qué para el dedo.
    - **El gancho (0–3 s):** lo que se ve, lo que se oye y lo que se lee. Qué pregunta deja abierta o qué contradice. Si el
