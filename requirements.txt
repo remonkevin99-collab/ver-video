@@ -1,0 +1,10 @@
+# Lo que necesita «ver vídeos» (todo con licencia libre).
+# Python 3.10, 3.11 o 3.12 (el transcriptor todavía no tiene versión para todos los más nuevos).
+yt-dlp
+Pillow>=10.1
+numpy
+# trae un ffmpeg propio por si no tienes uno instalado
+imageio-ffmpeg
+faster-whisper
+# «av» 19 no encaja con faster-whisper 1.2: se fija la 18
+av<19
